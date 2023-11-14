@@ -67,13 +67,21 @@
 #define ID_GEOMETRY_ZOOMIN              32828
 #define ID_32829                        32829
 #define ID_GEOMETRY_BILINEAR_INTERPOLATION 32830
+#define ID_32831                        32831
+#define ID_GEOMETRY_ZOOMOUT_SUBSAMPLING 32832
+#define ID_32833                        32833
+#define ID_GEOMETRY_ZOOMOUT_AVERAGE     32834
+#define ID_32835                        32835
+#define ID_GEOMETRY_ZOOMOUT_MEDIAN      32836
+#define ID_32837                        32837
+#define ID_GEOMETRY_ROTATE              32838
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        311
-#define _APS_NEXT_COMMAND_VALUE         32831
+#define _APS_NEXT_COMMAND_VALUE         32839
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           310
 #endif

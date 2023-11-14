@@ -71,6 +71,10 @@ public:
 	afx_msg void OnMorphologyClosing();
 	afx_msg void OnGeometryZoomin();
 	afx_msg void OnGeometryBilinearInterpolation();
+	afx_msg void OnGeometryZoomoutSubsampling();
+	afx_msg void OnGeometryZoomoutAverage();
+	afx_msg void OnGeometryZoomoutMedian();
+	afx_msg void OnGeometryRotate();
 };
 
 #ifndef _DEBUG  // ImageProcess_20211422View.cpp의 디버그 버전
