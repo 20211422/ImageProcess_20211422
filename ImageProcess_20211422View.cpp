@@ -16,6 +16,9 @@
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+#include "CInputDlg.h"
+#include "cmath"
+#include "vfw.h"
 
 
 // CImageProcess20211422View
@@ -57,6 +60,13 @@ BEGIN_MESSAGE_MAP(CImageProcess20211422View, CScrollView)
 	ON_COMMAND(ID_GEOMETRY_ZOOMOUT_AVERAGE, &CImageProcess20211422View::OnGeometryZoomoutAverage)
 	ON_COMMAND(ID_GEOMETRY_ZOOMOUT_MEDIAN, &CImageProcess20211422View::OnGeometryZoomoutMedian)
 	ON_COMMAND(ID_GEOMETRY_ROTATE, &CImageProcess20211422View::OnGeometryRotate)
+	ON_COMMAND(ID_ROTATE_DIALOG, &CImageProcess20211422View::OnRotateDialog)
+	ON_COMMAND(ID_GEOMETRY_MIRROR, &CImageProcess20211422View::OnGeometryMirror)
+	ON_COMMAND(ID_GEOMETRY_UPSIDEDOWN, &CImageProcess20211422View::OnGeometryUpsidedown)
+	ON_COMMAND(iD_GEOMETRY_WARPING, &CImageProcess20211422View::OnGeometryWarping)
+	ON_WM_LBUTTONDOWN()
+	ON_WM_LBUTTONUP()
+	ON_COMMAND(ID_AVI_VIEW, &CImageProcess20211422View::OnAviView)
 END_MESSAGE_MAP()
 
 // CImageProcess20211422View 생성/소멸
@@ -64,7 +74,7 @@ END_MESSAGE_MAP()
 CImageProcess20211422View::CImageProcess20211422View() noexcept
 {
 	// TODO: 여기에 생성 코드를 추가합니다.
-
+	bAviMode = false;
 }
 
 CImageProcess20211422View::~CImageProcess20211422View()
@@ -87,6 +97,16 @@ void CImageProcess20211422View::OnDraw(CDC* pDC)
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
 		return;
+
+	if (bAviMode) {
+		// avi 파일 재생
+
+		LoadAviFile(pDC);
+
+		bAviMode = false;
+		return;
+	}
+
 
 	// TODO: 여기에 원시 데이터에 대한 그리기 코드를 추가합니다.	
 	//pDC->TextOutA(120, 100, _T("asdf"));
@@ -117,7 +137,7 @@ void CImageProcess20211422View::OnDraw(CDC* pDC)
 		if (pDoc->resultImg != NULL) {
 			for (int y = 0; y < pDoc->ImageHeight; y++) {
 				for (int x = 0; x < pDoc->ImageWidth; x++) {
-					pDC->SetPixel(x + pDoc->ImageWidth * 2 + 60, y, RGB(pDoc->resultImg[y][x],
+					pDC->SetPixel(x + pDoc->ImageWidth * 2 + (pDoc->inputImg2 != NULL) * pDoc->ImageWidth + 60, y, RGB(pDoc->resultImg[y][x],
 						pDoc->resultImg[y][x],
 						pDoc->resultImg[y][x]));
 				}
@@ -158,7 +178,7 @@ void CImageProcess20211422View::OnDraw(CDC* pDC)
 		if (pDoc->resultImg != NULL) {
 			for (int y = 0; y < pDoc->ImageHeight; y++) {
 				for (int x = 0; x < pDoc->ImageWidth; x++) {
-					pDC->SetPixel(x + pDoc->ImageWidth + 30, y, RGB(pDoc->resultImg[y][3 * x],
+					pDC->SetPixel(x + pDoc->ImageWidth + (pDoc->inputImg2 != NULL) * pDoc->ImageWidth + 60, y, RGB(pDoc->resultImg[y][3 * x],
 						pDoc->resultImg[y][3 * x + 1],
 						pDoc->resultImg[y][3 * x + 2]));
 				}
@@ -342,14 +362,20 @@ void CImageProcess20211422View::OnPixelTwoImageSub()
 
 	for (y = 0; y < pDc->ImageHeight; y++) {
 		for (x = 0; x < pDc->ImageWidth; x++) {
-			value = pDc->inputImg[y][3 * x] - pDc->inputImg2[y][3 * x];
-			pDc->resultImg[y][3 * x] = 255 * (value > 64);
+			if (pDc->depth == 1) {
+				value = pDc->inputImg[y][x] - pDc->inputImg2[y][x];
+				pDc->resultImg[y][x] = max(0, value);
+			}
+			else {
+				value = pDc->inputImg[y][3 * x] - pDc->inputImg2[y][3 * x + 0];
+				pDc->resultImg[y][3 * x] = max(0, value);
 
-			value = pDc->inputImg[y][3 * x + 1] - pDc->inputImg2[y][3 * x + 1];
-			pDc->resultImg[y][3 * x + 1] = 255 * (value > 64);
+				value = pDc->inputImg[y][3 * x + 1] - pDc->inputImg2[y][3 * x + 1];
+				pDc->resultImg[y][3 * x + 1] = max(0, value);
 
-			value = pDc->inputImg[y][3 * x + 2] - pDc->inputImg2[y][3 * x + 2];
-			pDc->resultImg[y][3 * x + 2] = 255 * (value > 64);
+				value = pDc->inputImg[y][3 * x + 2] - pDc->inputImg2[y][3 * x + 2];
+				pDc->resultImg[y][3 * x + 2] = max(0, value);
+			}
 		}
 	}
 	Invalidate(FALSE);
@@ -359,28 +385,26 @@ void CImageProcess20211422View::OnPixelTwoImageSub()
 void CImageProcess20211422View::LoadTwoImage()
 {
 	CImageProcess20211422Doc* pDc = GetDocument();
-	CFileDialog dlg(TRUE);
 	CFile file;
+	CFileDialog dlg(TRUE);
 
 	AfxMessageBox("Select the First Image");
 
 	if (dlg.DoModal() == IDOK) {
-
 		file.Open(dlg.GetPathName(), CFile::modeRead); // 파일 열기
-
 		CArchive ar(&file, CArchive::load);
 		pDc->LoadImageFile(ar);
-
+		//file.Read(inputImg, 256 * 256);
 		file.Close();
 	}
 
+	AfxMessageBox("Select the Second Image");
+
 	if (dlg.DoModal() == IDOK) {
-
 		file.Open(dlg.GetPathName(), CFile::modeRead); // 파일 열기
-
 		CArchive ar(&file, CArchive::load);
-		pDc->LoadImageFile(ar);
-
+		pDc->LoadSecondImageFile(ar);
+		//file.Read(inputImg2, 256 * 256);
 		file.Close();
 	}
 }
@@ -1000,8 +1024,8 @@ void CImageProcess20211422View::OnGeometryZoomin()
 void CImageProcess20211422View::OnGeometryBilinearInterpolation()
 {
 	CImageProcess20211422Doc* pDoc = GetDocument();
-	float xscale = 2.1;
-	float yscale = 1.5;
+	float xscale = 3; // 2.1
+	float yscale = 2; // 1.5
 	float src_x, src_y;
 	float alpha, beta;
 	int E, F;
@@ -1025,23 +1049,25 @@ void CImageProcess20211422View::OnGeometryBilinearInterpolation()
 
 	for (int y = 0; y < pDoc->gImageHeight; y++) {
 		for (int x = 0; x < pDoc->gImageWidth; x++) {
-			src_x = x / (float)xscale;
-			src_y = y / (float)yscale;
-			alpha = src_x - x / xscale;
-			beta = src_y - y / yscale;
-
-			Ax = min(x / xscale, pDoc->ImageWidth - 1);
-			Ay = min(y / yscale, pDoc->ImageWidth - 1);
-			Bx = min(Ax + 1, pDoc->ImageWidth - 1);
+			src_x = x / xscale;
+			src_y = y / yscale;
+			alpha = src_x - (int)(x / xscale);
+			beta = src_y - (int)(y / yscale);
+			
+			Ax = min(max(x / xscale, 0), pDoc->ImageWidth - 1);
+			Ay = min(max(y / yscale, 0), pDoc->ImageHeight - 1);
+			Bx = min(max(Ax + 1, 0), pDoc->ImageWidth - 1);
 			By = Ay;
 			Cx = Ax;
-			Cy = min(Ay + 1, pDoc->ImageWidth - 1);
-			Dx = min(Ax + 1, pDoc->ImageWidth - 1);
-			Dy = min(Ay + 1, pDoc->ImageWidth - 1);
+			Cy = min(max(Ay + 1, 0), pDoc->ImageHeight - 1);
+			Dx = min(max(Ax + 1, 0), pDoc->ImageWidth - 1);
+			Dy = min(max(Ay + 1, 0), pDoc->ImageHeight - 1);
 
 			if (pDoc->depth == 1) {
-				E = (int)(pDoc->inputImg[Ay][Ax] * (1 - alpha) + pDoc->inputImg[By][Bx] * alpha);
-				F = (int)(pDoc->inputImg[Cy][Cx] * (1 - alpha) + pDoc->inputImg[Dy][Dx] * alpha);
+				E = (int)(pDoc->inputImg[Ay][Ax] * (1 - alpha)
+					+ pDoc->inputImg[By][Bx] * alpha);
+				F = (int)(pDoc->inputImg[Cy][Cx] * (1 - alpha)
+					+ pDoc->inputImg[Dy][Dx] * alpha);
 
 				pDoc->gResultImg[y][x] = (unsigned char)(E * (1 - beta) + F * beta);
 			}
@@ -1071,14 +1097,16 @@ void CImageProcess20211422View::OnGeometryBilinearInterpolation()
 void CImageProcess20211422View::OnGeometryZoomoutSubsampling()
 {
 	CImageProcess20211422Doc* pDoc = GetDocument();
-	int x, y;
+	int x, y, i;
 
 	int xscale = 3;
 	int yscale = 2;
 
 	if (pDoc->gResultImg != NULL) {
-		for (int i = 0; i < pDoc->gImageHeight; i++) {
-			free(pDoc->gResultImg[i]);
+		for (i = 0; i < pDoc->gImageHeight; i++) {
+			if (pDoc->gResultImg[i] != NULL) {
+				free(pDoc->gResultImg[i]);
+			}
 		}
 		free(pDoc->gResultImg);
 	}
@@ -1088,7 +1116,7 @@ void CImageProcess20211422View::OnGeometryZoomoutSubsampling()
 
 	pDoc->gResultImg = (unsigned char**)malloc(pDoc->gImageHeight * sizeof(unsigned char*));
 
-	for (int i = 0; i < pDoc->gImageHeight; i++) {
+	for (i = 0; i < pDoc->gImageHeight; i++) {
 		pDoc->gResultImg[i] = (unsigned char*)malloc(pDoc->gImageWidth * pDoc->depth);
 	}
 
@@ -1130,7 +1158,7 @@ void CImageProcess20211422View::OnGeometryZoomoutAverage()
 	int yscale = 2;
 
 	if (pDoc->gResultImg != NULL) {
-		for (int i = 0; i < pDoc->gImageHeight; i++) {
+		for (i = 0; i < pDoc->gImageHeight; i++) {
 			free(pDoc->gResultImg[i]);
 		}
 		free(pDoc->gResultImg);
@@ -1235,7 +1263,7 @@ void CImageProcess20211422View::OnGeometryRotate()
 
 			if (pDoc->depth == 1) {
 				if (x_source < 0 || x_source > pDoc->ImageWidth - 1 || y_source < 0 || y_source > pDoc->ImageHeight - 1) {
-					pDoc->gResultImg[y + ydiff][x + xdiff] = 0;
+					pDoc->gResultImg[y + ydiff][x + xdiff] = 255;
 				}
 				else {
 					pDoc->gResultImg[y + ydiff][x + xdiff] = pDoc->inputImg[y_source][x_source];
@@ -1243,9 +1271,9 @@ void CImageProcess20211422View::OnGeometryRotate()
 			}
 			else {
 				if (x_source < 0 || x_source > pDoc->ImageWidth - 1 || y_source < 0 || y_source > pDoc->ImageHeight - 1) {
-					pDoc->gResultImg[y + ydiff][3 * (x + xdiff) + 0] = 0;
-					pDoc->gResultImg[y + ydiff][3 * (x + xdiff) + 1] = 0;
-					pDoc->gResultImg[y + ydiff][3 * (x + xdiff) + 2] = 0;
+					pDoc->gResultImg[y + ydiff][3 * (x + xdiff) + 0] = 255;
+					pDoc->gResultImg[y + ydiff][3 * (x + xdiff) + 1] = 255;
+					pDoc->gResultImg[y + ydiff][3 * (x + xdiff) + 2] = 255;
 				}
 				else {
 					pDoc->gResultImg[y + ydiff][3 * (x + xdiff) + 0] = pDoc->inputImg[y_source][3 * x_source + 0];
@@ -1256,4 +1284,361 @@ void CImageProcess20211422View::OnGeometryRotate()
 		}
 	}
 	Invalidate();
+}
+
+
+void CImageProcess20211422View::OnRotateDialog()
+{
+	CImageProcess20211422Doc* pDoc = GetDocument();
+
+	CInputDlg inputDlg;
+	inputDlg.DoModal();
+
+	int x, y, i, j;
+
+	int x_source, y_source;
+
+	int angle = inputDlg.m_zoom_in_ratio;
+	float radian;
+
+	int Cx, Cy, Oy;
+
+	int xdiff, ydiff;
+
+	if (pDoc->gResultImg != NULL) {
+		for (int i = 0; i < pDoc->gImageHeight; i++) {
+			free(pDoc->gResultImg[i]);
+		}
+		free(pDoc->gResultImg);
+	}
+
+	radian = PI / 180 * angle;
+	//while (radian > 2 * PI) { radian -= 2 * PI; }
+	//while (radian < 0) { radian += 2 * PI; }
+
+	pDoc->gImageWidth = abs(pDoc->ImageHeight * cos(PI / 2 - radian)) + abs(pDoc->ImageWidth * cos(radian));
+	pDoc->gImageHeight = abs(pDoc->ImageHeight * cos(radian)) + abs(pDoc->ImageWidth * cos(PI / 2 - radian));
+
+	//pDoc->gImageWidth = pDoc->ImageWidth * sin(PI + radian) + pDoc->ImageHeight * cos(radian);
+	//pDoc->gImageHeight = pDoc->ImageWidth * cos(PI + radian) + pDoc->ImageHeight * sin(radian);
+
+	pDoc->gResultImg = (unsigned char**)malloc(pDoc->gImageHeight * sizeof(unsigned char*));
+
+	for (i = 0; i < pDoc->gImageHeight; i++) {
+		pDoc->gResultImg[i] = (unsigned char*)malloc(pDoc->gImageWidth * pDoc->depth);
+	}
+
+	Cx = pDoc->ImageWidth / 2;
+	Cy = pDoc->ImageHeight / 2;
+
+	Oy = pDoc->ImageHeight - 1;
+
+	xdiff = (pDoc->gImageWidth - pDoc->ImageWidth) / 2;
+	ydiff = (pDoc->gImageHeight - pDoc->ImageHeight) / 2;
+
+	for (y = -ydiff; y < pDoc->gImageHeight - ydiff; y++) {
+		for (x = -xdiff; x < pDoc->gImageWidth - xdiff; x++) {
+			x_source = (Oy - y - Cy) * sin(radian) + (x - Cx) * cos(radian) + Cx;
+			y_source = (Oy - y - Cy) * cos(radian) - (x - Cx) * sin(radian) + Cy;
+
+			y_source = Oy - y_source;
+
+			if (pDoc->depth == 1) {
+				if (x_source < 0 || x_source > pDoc->ImageWidth - 1 || y_source < 0 || y_source > pDoc->ImageHeight - 1) {
+					pDoc->gResultImg[y + ydiff][x + xdiff] = 255;
+				}
+				else {
+					pDoc->gResultImg[y + ydiff][x + xdiff] = pDoc->inputImg[y_source][x_source];
+				}
+			}
+			else {
+				if (x_source < 0 || x_source > pDoc->ImageWidth - 1 || y_source < 0 || y_source > pDoc->ImageHeight - 1) {
+					pDoc->gResultImg[y + ydiff][3 * (x + xdiff) + 0] = 255;
+					pDoc->gResultImg[y + ydiff][3 * (x + xdiff) + 1] = 255;
+					pDoc->gResultImg[y + ydiff][3 * (x + xdiff) + 2] = 255;
+				}
+				else {
+					pDoc->gResultImg[y + ydiff][3 * (x + xdiff) + 0] = pDoc->inputImg[y_source][3 * x_source + 0];
+					pDoc->gResultImg[y + ydiff][3 * (x + xdiff) + 1] = pDoc->inputImg[y_source][3 * x_source + 1];
+					pDoc->gResultImg[y + ydiff][3 * (x + xdiff) + 2] = pDoc->inputImg[y_source][3 * x_source + 2];
+				}
+			}
+		}
+	}
+	Invalidate();
+}
+
+
+void CImageProcess20211422View::OnGeometryMirror()
+{
+	CImageProcess20211422Doc* pDoc = GetDocument();
+	
+	int x, y;
+
+	for (y = 0; y < pDoc->ImageHeight; y++) {
+		for (x = 0; x < pDoc->ImageWidth; x++) {
+			if (pDoc->depth == 1) {
+				pDoc->resultImg[y][x] = pDoc->inputImg[y][pDoc->ImageWidth - 1 - x];
+			}
+			else {
+				pDoc->resultImg[y][3 * x + 0] = pDoc->inputImg[y][3 * (pDoc->ImageWidth - 1 - x) + 0];
+				pDoc->resultImg[y][3 * x + 1] = pDoc->inputImg[y][3 * (pDoc->ImageWidth - 1 - x) + 1];
+				pDoc->resultImg[y][3 * x + 2] = pDoc->inputImg[y][3 * (pDoc->ImageWidth - 1 - x) + 2];
+			}
+		}
+	}
+	Invalidate();
+}
+
+
+void CImageProcess20211422View::OnGeometryUpsidedown()
+{
+	CImageProcess20211422Doc* pDoc = GetDocument();
+
+	int x, y;
+
+	for (y = 0; y < pDoc->ImageHeight; y++) {
+		for (x = 0; x < pDoc->ImageWidth; x++) {
+			if (pDoc->depth == 1) {
+				pDoc->resultImg[y][x] = pDoc->inputImg[pDoc->ImageHeight - 1 - y][x];
+			}
+			else {
+				pDoc->resultImg[y][3 * x + 0] = pDoc->inputImg[pDoc->ImageHeight - 1 - y][3 * x + 0];
+				pDoc->resultImg[y][3 * x + 1] = pDoc->inputImg[pDoc->ImageHeight - 1 - y][3 * x + 1];
+				pDoc->resultImg[y][3 * x + 2] = pDoc->inputImg[pDoc->ImageHeight - 1 - y][3 * x + 2];
+			}
+		}
+	}
+	Invalidate();
+}
+
+typedef struct {
+	int Px;
+	int Py;
+	int Qx;
+	int Qy;
+} control_line;
+
+control_line mctrl_source = { 100, 100, 150, 150 };
+control_line mctrl_dest = { 100, 100, 200, 200 };
+
+void CImageProcess20211422View::OnGeometryWarping()
+{
+	CImageProcess20211422Doc* pDoc = GetDocument();
+
+	control_line source_lines[5] = {
+		mctrl_source,
+		{0, 0, pDoc->ImageWidth - 1, 0},
+		{pDoc->ImageWidth - 1, 0, pDoc->ImageWidth - 1, pDoc->ImageHeight - 1},
+		{pDoc->ImageWidth - 1, pDoc->ImageHeight - 1, 0, pDoc->ImageHeight - 1},
+		{0, pDoc->ImageHeight - 1, 0, 0}
+	};
+	control_line dest_lines[5] = {
+		mctrl_dest,
+		{0, 0, pDoc->ImageWidth - 1, 0},
+		{pDoc->ImageWidth - 1, 0, pDoc->ImageWidth - 1, pDoc->ImageHeight - 1},
+		{pDoc->ImageWidth - 1, pDoc->ImageHeight - 1, 0, pDoc->ImageHeight - 1},
+		{0, pDoc->ImageHeight - 1, 0, 0}
+	};
+
+	source_lines[0] = mctrl_source;
+	dest_lines[0] = mctrl_dest;
+	int x, y;
+
+	double u;
+	double h;
+	double d;
+	double tx, ty;
+	double xp, yp;
+
+	double weight;
+	double totalWeight;
+	double a = 0.001;
+	double b = 2.0;
+	double p = 0.75;
+
+	int x1, x2, y1, y2;
+	int src_x1, src_y1, src_x2, src_y2;
+	double src_line_length, dest_line_length;
+
+	int num_lines = 5;
+	int line;
+	int source_x, source_y;
+	int last_row, last_col;
+
+	last_row = pDoc->ImageHeight - 1;
+	last_col = pDoc->ImageWidth - 1;
+
+	for (y = 0; y < pDoc->ImageHeight; y++) {
+		for (x = 0; x < pDoc->ImageWidth; x++) {
+			totalWeight = 0.0;
+			tx = 0.0;
+			ty = 0.0;
+
+			for (line = 0; line < num_lines; line++) {
+				x1 = dest_lines[line].Px;
+				y1 = dest_lines[line].Py;
+				x2 = dest_lines[line].Qx;
+				y2 = dest_lines[line].Qy;
+
+				dest_line_length = sqrt((double)((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)));
+
+				u = (double)((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / (double)((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+				h = (double)((y - y1) * (x2 - x1) - (x - x1) * (y2 - y1)) / dest_line_length;
+
+				if (u < 0) { d = sqrt((double)((x - x1) * (x - x1) + (y - y1) * (y - y1))); }
+				else if (u > 1) { d = sqrt((double)((x - x2) * (x - x2) + (y - y2) * (y - y2))); }
+				else { d = fabs(h); }
+
+				src_x1 = source_lines[line].Px;
+				src_y1 = source_lines[line].Py;
+				src_x2 = source_lines[line].Qx;
+				src_y2 = source_lines[line].Qy;
+				src_line_length = sqrt((double)((src_x2 - src_x1) * (src_x2 - src_x1) + (src_y2 - src_y1) * (src_y2 - src_y1)));
+
+				xp = src_x1 + u * (src_x2 - src_x1) - h * (src_y2 - src_y1) / src_line_length;
+				yp = src_y1 + u * (src_y2 - src_y1) + h * (src_x2 - src_x1) / src_line_length;
+
+				weight = pow((pow((double)(dest_line_length), p) / (a + d)), b);
+
+				tx += (xp - x) * weight;
+				ty += (yp - y) * weight;
+
+				totalWeight += weight;
+			}
+
+			source_x = x + (int)(tx / totalWeight + 0.5);
+			source_y = y + (int)(ty / totalWeight + 0.5);
+
+			source_x = min(max(source_x, 0), last_col);
+			source_y = min(max(source_y, 0), last_row);
+
+			if (pDoc->depth == 1) {
+				pDoc->resultImg[y][x] = pDoc->inputImg[source_y][source_x];
+			}
+			else {
+				pDoc->resultImg[y][3 * x + 0] = pDoc->inputImg[source_y][3 * source_x + 0];
+				pDoc->resultImg[y][3 * x + 1] = pDoc->inputImg[source_y][3 * source_x + 1];
+				pDoc->resultImg[y][3 * x + 2] = pDoc->inputImg[source_y][3 * source_x + 2];
+			}
+		}
+	}
+
+	Invalidate();
+}
+
+CPoint mpos_st, mpos_end;
+
+void CImageProcess20211422View::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	mpos_st = point;
+
+	CScrollView::OnLButtonDown(nFlags, point);
+}
+
+void CImageProcess20211422View::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	mpos_end = point;
+
+	CDC* pDC = GetDC();
+	CPen rpen;
+	rpen.CreatePen(PS_SOLID, 0, RGB(255, 0, 0));
+	pDC->SelectObject(rpen);
+
+	pDC->MoveTo(mpos_st);
+	pDC->LineTo(mpos_end);
+
+	ReleaseDC(pDC);
+
+	int Ax, Ay, Bx, By;
+	Ax = mpos_st.x;
+	Ay = mpos_st.y;
+	Bx = mpos_end.x;
+	By = mpos_end.y;
+
+	if (Ax < Bx) { mctrl_source.Px = Ax - (Bx - Ax) / 2; }
+	else { mctrl_source.Px = Ax + (Ax - Bx) / 2; }
+
+	if (Ay < By) { mctrl_source.Py = Ay - (By - Ay) / 2; }
+	else { mctrl_source.Py = Ay + (Ay - By) / 2; }
+
+	mctrl_dest.Px = mctrl_source.Px;
+	mctrl_dest.Py = mctrl_source.Py;
+
+	mctrl_source.Qx = mpos_st.x;
+	mctrl_source.Qy = mpos_st.y;
+	mctrl_dest.Qx = mpos_end.x;
+	mctrl_dest.Qy = mpos_end.y;
+
+	CScrollView::OnLButtonUp(nFlags, point);
+}
+
+
+void CImageProcess20211422View::OnAviView()
+{
+	CFileDialog dlg(true, ".", 0, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, "AVI파일(*.avi)|*.avi|모든파일|*.*|");
+
+	if (dlg.DoModal() == IDOK) {
+		AVIFileName = dlg.GetPathName();
+		bAviMode = true;
+		Invalidate();
+	}
+}
+
+
+void CImageProcess20211422View::LoadAviFile(CDC* pDC)
+{
+	PAVIFILE pavi;
+	AVIFILEINFO fi;
+	int stm;
+	PAVISTREAM pstm = NULL;
+	AVISTREAMINFO si;
+	PGETFRAME pfrm = NULL;
+	int frame;
+	LPBITMAPINFOHEADER pbmpih;
+	unsigned char* image;
+	int x, y;
+
+	AVIFileInit();
+	AVIFileOpen(&pavi, AVIFileName, OF_READ | OF_SHARE_DENY_NONE, NULL);
+	AVIFileInfo(pavi, &fi, sizeof(AVIFILEINFO));
+
+	for (stm = 0; stm < fi.dwStreams; stm++) {
+		AVIFileGetStream(pavi, &pstm, 0, stm);
+		AVIStreamInfo(pstm, &si, sizeof(si));
+
+		if (si.fccType == streamtypeVIDEO) {
+			pfrm = AVIStreamGetFrameOpen(pstm, NULL);
+
+			for (frame = 0; frame < si.dwLength; frame++) {
+				pbmpih = (LPBITMAPINFOHEADER)AVIStreamGetFrame(pfrm, frame);
+				if (!pbmpih) { continue; }
+				image = (unsigned char*)((LPSTR)pbmpih + (WORD)pbmpih->biSize);
+
+				/*
+				for (y = 0; y < fi.dwHeight; y++) {
+					for(x = 0; x < fi.dwWidth; x++) {
+						pDC->SetPixel(x, fi.dwHeight - y - 1,
+							RGB(
+								image[(y * fi.dwWidth + x) * 3 + 2],
+								image[(y * fi.dwWidth + x) * 3 + 1],
+								image[(y * fi.dwWidth + x) * 3 + 0]));
+					}
+				}
+				*/
+				SetDIBitsToDevice(pDC->GetSafeHdc(),
+					0, 0, fi.dwWidth, fi.dwHeight,
+					0, 0, 0, fi.dwWidth,
+					image, (BITMAPINFO*)pbmpih, DIB_RGB_COLORS);
+				Sleep(30);
+
+			}
+		}
+	}
+
+	AVIStreamGetFrameClose(pfrm);
+	AVIStreamRelease(pstm);
+	AVIFileRelease(pavi);
+	AVIFileExit();
+
 }

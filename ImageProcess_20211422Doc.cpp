@@ -317,7 +317,7 @@ void CImageProcess20211422Doc::PixelHistoEq()
 	int x, y, i, k;
 	int acc_hist;
 	int hist[256], sum[256];
-	int N = 256 * 256;
+	int N = ImageHeight * ImageWidth;
 
 	for (i = 0; i < 256; i++) {
 		hist[i] = 0;
@@ -336,8 +336,8 @@ void CImageProcess20211422Doc::PixelHistoEq()
 		sum[i] = acc_hist;
 	}
 
-	for (y = 0; y < 256; y++) {
-		for (x = 0; x < 256; x++) {
+	for (y = 0; y < ImageHeight; y++) {
+		for (x = 0; x < ImageWidth; x++) {
 			k = pDoc->inputImg[y][x];
 			pDoc->resultImg[y][x] = (float)sum[k] / N * 255;
 		}
@@ -394,7 +394,7 @@ void CImageProcess20211422Doc::PixelBinarization()
 
 	if (inputImg == NULL) { return; }
 
-	int threshold = 230;
+	int threshold = 160;
 	int x, y;
 	if (depth == 1) {
 		for (y = 0; y < ImageHeight; y++) {
@@ -424,7 +424,6 @@ void CImageProcess20211422Doc::PixelBinarization()
 
 void CImageProcess20211422Doc::PixelTwoImageAdd()
 {
-	if (inputImg == NULL) { return; }
 
 	int value;
 	int x, y;
@@ -433,8 +432,20 @@ void CImageProcess20211422Doc::PixelTwoImageAdd()
 
 	for (y = 0; y < ImageHeight; y++) {
 		for (x = 0; x < ImageWidth; x++) {
-			value = inputImg[y][x] + inputImg2[y][x];
-			resultImg[y][x] = min(value, 255);
+			if (depth == 1) {
+				value = inputImg[y][x] + inputImg2[y][x];
+				resultImg[y][x] = min(value, 255);
+			}
+			else {
+				value = inputImg[y][3 * x + 0] + inputImg2[y][3 * x + 0];
+				resultImg[y][3 * x + 0] = min(value, 255);
+
+				value = inputImg[y][3 * x + 1] + inputImg2[y][3 * x + 1];
+				resultImg[y][3 * x + 1] = min(value, 255);
+
+				value = inputImg[y][3 * x + 2] + inputImg2[y][3 * x + 2];
+				resultImg[y][3 * x + 2] = min(value, 255);
+			}
 		}
 	}
 }

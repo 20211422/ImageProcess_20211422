@@ -7,6 +7,9 @@
 #define IDR_MAINFRAME                   128
 #define IDR_ImageProcess20211422TYPE    130
 #define ID_WINDOW_MANAGER               131
+#define IDD_DIALOG1                     315
+#define IDCANCEL                        1001
+#define IDC_EDIT1                       1003
 #define ID_FDSA                         32771
 #define asdf                            32772
 #define ID_ASDF_32773                   32773
@@ -75,14 +78,26 @@
 #define ID_GEOMETRY_ZOOMOUT_MEDIAN      32836
 #define ID_32837                        32837
 #define ID_GEOMETRY_ROTATE              32838
+#define ID_32839                        32839
+#define ID_ZOOM_IN_DIALOG               32840
+#define ID_ROTATION_DIALOG              32841
+#define ID_ROTATE_DIALOG                32842
+#define ID_32843                        32843
+#define ID_GEOMETRY_MIRROR              32844
+#define ID_32845                        32845
+#define ID_GEOMETRY_UPSIDEDOWN          32846
+#define ID_32847                        32847
+#define iD_GEOMETRY_WARPING             32848
+#define ID_32849                        32849
+#define ID_AVI_VIEW                     32850
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        311
-#define _APS_NEXT_COMMAND_VALUE         32839
-#define _APS_NEXT_CONTROL_VALUE         1000
+#define _APS_NEXT_RESOURCE_VALUE        317
+#define _APS_NEXT_COMMAND_VALUE         32851
+#define _APS_NEXT_CONTROL_VALUE         1004
 #define _APS_NEXT_SYMED_VALUE           310
 #endif
 #endif

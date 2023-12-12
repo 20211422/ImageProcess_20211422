@@ -96,6 +96,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
+      <AdditionalDependencies>vfw32.lib</AdditionalDependencies>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -184,6 +185,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ChildFrm.h" />
+    <ClInclude Include="CInputDlg.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ImageProcess_20211422.h" />
     <ClInclude Include="ImageProcess_20211422Doc.h" />
@@ -195,6 +197,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ChildFrm.cpp" />
+    <ClCompile Include="CInputDlg.cpp" />
     <ClCompile Include="ImageProcess_20211422.cpp" />
     <ClCompile Include="ImageProcess_20211422Doc.cpp" />
     <ClCompile Include="ImageProcess_20211422View.cpp" />
